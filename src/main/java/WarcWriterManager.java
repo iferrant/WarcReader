@@ -12,13 +12,13 @@ public class WarcWriterManager {
     private final String WARC_VERSION = "WARC/1.0";
     private final String HEADER_WARCINFO_ALL_LANGUAGE = "WARC-All-Language";
     private final String HEADER_WARCINFO_ALL_CONTENT_TYPE = "WARC-All-Content_type";
+    private final String WARCINFO_CONTENT = "WARCProcessor by SING Group www.sing-group.com";
     private final String HEADER_LANGUAGE = "WARC-language";
     private final String HEADER_CONTENT_TYPE = "Content-Type";
-    private final String HEADER_CONTENT_LENGTH = "Content-Length";
-    private final String[] warcinfoheaderkeys = {"WARC-Type", "WARC-Date", "WARC-Record-ID",
-            "WARC-All-Language", "WARC-All-Content_type", "Content-Type", "Content-Length"};
-    private final String[] responseheaderkeys = {"WARC-Type", "WARC-Record-ID", "WARC-Date",
-            "WARC-Target-URI", "WARC-language", "Content-Type", "Content-Length"};
+    private final String[] warcinfoheaderkeys = {"WARC-Type", "WARC-Date", "WARC-All-Language",
+            "WARC-All-Content_type", "WARC-Record-ID", "Content-Type", "Content-Length"};
+    private final String[] responseheaderkeys = {"WARC-Type", "WARC-Target-URI", "WARC-Date",
+            "WARC-language", "WARC-Record-ID", "Content-Type", "Content-Length"};
 
     private Map<String, List<CustomHeader>> customHeaders = new HashMap<>();
 
@@ -69,6 +69,7 @@ public class WarcWriterManager {
         try (FileOutputStream os = new FileOutputStream(file)) {
             writeWarcInfoHeader(warc.getFileName(), warc.getWarcInfoHeader(), os);
             writeResponses(warc.getPages(), os);
+            lineBreak(os);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -77,8 +78,8 @@ public class WarcWriterManager {
 
     private void writeWarcInfoHeader(String fileName, ArchiveRecordHeader warcHeader, OutputStream os)
             throws IOException {
-        String version = WARC_VERSION + System.lineSeparator();
-        os.write(version.getBytes());
+        os.write(WARC_VERSION.getBytes());
+        lineBreak(os);
         for (String header: warcinfoheaderkeys) {
             switch (header) {
                 case HEADER_WARCINFO_ALL_LANGUAGE:
@@ -95,17 +96,22 @@ public class WarcWriterManager {
                     break;
             }
         }
+        // Write warcinfo metadata
+        lineBreak(os);
+        os.write(WARCINFO_CONTENT.getBytes());
     }
 
     private void writeResponseHeader(ArchiveRecordHeader warcHeader, OutputStream os) throws IOException {
-        String version = System.lineSeparator() + WARC_VERSION + System.lineSeparator();
-        os.write(version.getBytes());
+        lineBreak(os);
+        os.write(WARC_VERSION.getBytes());
+        lineBreak(os);
         for (String header: responseheaderkeys) {
             os.write(buildHeader(
                             header,
                             warcHeader.getHeaderValue(header))
                             .getBytes());
         }
+        lineBreak(os);
     }
 
     private String buildCustomHeader(String fileName, String headerKey, Map<String, List<CustomHeader>> values) {
@@ -124,26 +130,27 @@ public class WarcWriterManager {
                 }
             }
         }
-        return headerKey + ": " + sb.toString() + System.lineSeparator();
+        return headerKey + ": " + sb.toString() + "\r\n";
     }
 
     private String buildHeader(String headerKey, Object headerValue) {
         String h = headerKey + ": ";
         if (headerValue != null) {
-            h += headerValue.toString() + System.lineSeparator();
+            h += headerValue.toString() + "\r\n";
         } else {
-            h += System.lineSeparator();
+            h += "\r\n";
         }
         return h;
     }
 
 
     private void writeResponses(Iterator<ArchiveRecord> records, OutputStream os) throws IOException {
-        os.write(System.lineSeparator().getBytes());
+        lineBreak(os);
         while (records.hasNext()) {
             ArchiveRecord record = records.next();
             writeResponseHeader(record.getHeader(), os);
             record.dump(os);
+            lineBreak(os);
         }
     }
 
@@ -166,5 +173,9 @@ public class WarcWriterManager {
         headers.add(languages);
         headers.add(contentTypes);
         customHeaders.put(warc.getFileName(), headers);
+    }
+
+    private void lineBreak(OutputStream os) throws IOException {
+        os.write("\r\n".getBytes());
     }
 }
