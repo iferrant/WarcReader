@@ -26,12 +26,23 @@ public class CustomWarcWriter {
     private String folderName;
     private File[] files;
 
+    /**
+     * Creates the {@link CustomWarcWriter} object with the folder that contains the warc files and the
+     * number of pages that are going to be written
+     * @param folder Folder of the warc files
+     * @param numPages Number of pages to write of this <code>folder</code>
+     */
     public CustomWarcWriter(File folder, int numPages) {
         this.folderName = folder.getName();
         this.files = getFilesOfFolder(folder);
         this.numPages = numPages;
     }
 
+    /**
+     * Writes the warc files
+     * @throws IOException
+     * @throws ParseException
+     */
     public void writeWarcs() throws IOException, ParseException {
         List<Warc> warcsList = buildListOfPages(files);
         List<Warc> auxWarcsList = buildListOfPages(files);
@@ -46,11 +57,23 @@ public class CustomWarcWriter {
         }
     }
 
+    /**
+     * Creates an array of {@link File} with the files that contains the <code>folder</code>
+     * @param folder Folder with files
+     * @return Array of {@link File} objects
+     */
     private File[] getFilesOfFolder(File folder) {
         File[] noFiles = {};
         return folder.isDirectory()? folder.listFiles(): noFiles;
     }
 
+    /**
+     * Creates a list of {@link Warc} objects from the array of {@link File} <code>files</code>
+     * @param files Array of {@link File}
+     * @return List of {@link Warc} objects
+     * @throws IOException
+     * @throws ParseException
+     */
     private List<Warc> buildListOfPages(File[] files) throws IOException, ParseException {
         List<Warc> warcsList = new ArrayList<>();
         for (File item: files) {
@@ -60,6 +83,13 @@ public class CustomWarcWriter {
         return warcsList;
     }
 
+    /**
+     * Builds a {@link Warc} object from the <code>warc</code> received
+     * @param warc File with the warc
+     * @return {@link Warc} object
+     * @throws IOException
+     * @throws ParseException
+     */
     private Warc getPagesOfWarc(File warc) throws IOException, ParseException {
         WARCReader warcReader = WARCReaderFactory.get(new File(warc.getAbsolutePath()));
         String warcFileName = warc.getName();
@@ -68,6 +98,11 @@ public class CustomWarcWriter {
         return new Warc(warcFileName, warcinfo, warcReader.iterator());
     }
 
+    /**
+     * Writes the {@link Warc} object into a .warc file, building the headers and creating the root folder
+     * if its necessary
+     * @param warc {@link Warc} instance
+     */
     private void writeWarcFile(Warc warc) {
         // Create corpus directory if not exist
         createDirectory();
@@ -82,6 +117,13 @@ public class CustomWarcWriter {
 
     }
 
+    /**
+     * Writes the warcinfo header into the <code>os</code>
+     * @param fileName Name of the file
+     * @param warcHeader {@link ArchiveRecordHeader} with the header to write
+     * @param os {@link OutputStream} where write the header
+     * @throws IOException
+     */
     private void writeWarcInfoHeader(String fileName, ArchiveRecordHeader warcHeader, OutputStream os)
             throws IOException {
         os.write(WARC_VERSION.getBytes());
@@ -107,6 +149,12 @@ public class CustomWarcWriter {
         os.write(WARCINFO_CONTENT.getBytes());
     }
 
+    /**
+     * Writes the warcresponse header into the <code>os</code>
+     * @param warcHeader {@link ArchiveRecordHeader} with the header to write
+     * @param os {@link OutputStream} where write the header
+     * @throws IOException
+     */
     private void writeResponseHeader(ArchiveRecordHeader warcHeader, OutputStream os) throws IOException {
         lineBreak(os);
         os.write(WARC_VERSION.getBytes());
@@ -122,7 +170,16 @@ public class CustomWarcWriter {
         lineBreak(os);
     }
 
-    private String buildCustomHeader(String fileName, String headerKey, Map<String, List<CustomHeader>> values) {
+    /**
+     * Builds the warcinfo header with the <code>headerKey</code> key
+     * @param fileName Name of the warc file
+     * @param headerKey Key of the header to build
+     * @param values Map the the file name as key and the list of {@link CustomHeader} as value
+     * @return String with the warcinfo header built
+     */
+    private String buildCustomHeader(String fileName,
+                                     String headerKey,
+                                     Map<String, List<CustomHeader>> values) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, List<CustomHeader>> entry: values.entrySet()) {
             if (entry.getKey().equals(fileName)) {
@@ -141,6 +198,12 @@ public class CustomWarcWriter {
         return headerKey + ": " + sb.toString() + "\r\n";
     }
 
+    /**
+     * Builds a header with the <code>headerKey</code> as key and the <code>headerValue</code> as value
+     * @param headerKey Key of the header
+     * @param headerValue Value of the header
+     * @return String object with the header built
+     */
     private String buildHeader(String headerKey, Object headerValue) {
         String h = headerKey + ": ";
         if (headerValue != null) {
@@ -152,6 +215,12 @@ public class CustomWarcWriter {
     }
 
 
+    /**
+     * Writes the {@link ArchiveRecord} content on the <code>os</code>
+     * @param records Iterator of {@link ArchiveRecord}
+     * @param os {@link OutputStream} where write the records
+     * @throws IOException
+     */
     private void writeResponses(Iterator<ArchiveRecord> records, OutputStream os) throws IOException {
         lineBreak(os);
         while (records.hasNext() && numPages != 0) {
@@ -163,6 +232,10 @@ public class CustomWarcWriter {
         }
     }
 
+    /**
+     * Reads the warcresponse header of each record of the {@link Warc} to save the custom headers values
+     * @param warc {@link Warc} that needs to be edited
+     */
     private void setCustomHeaders(Warc warc) {
         CustomHeader languages = new CustomHeader(HEADER_WARCINFO_ALL_LANGUAGE, new HashSet<>());
         CustomHeader contentTypes = new CustomHeader(HEADER_WARCINFO_ALL_CONTENT_TYPE, new HashSet<>());
@@ -184,10 +257,18 @@ public class CustomWarcWriter {
         customHeaders.put(warc.getFileName(), headers);
     }
 
+    /**
+     * Writes a line break into the <code>os</code>
+     * @param os {@link OutputStream} where write the line break
+     * @throws IOException
+     */
     private void lineBreak(OutputStream os) throws IOException {
         os.write("\r\n".getBytes());
     }
 
+    /**
+     * Creates the result folder if not exist
+     */
     private void createDirectory() {
         String directoryName = folderName + "copy";
         File directory = new File(directoryName);
