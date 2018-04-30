@@ -1,13 +1,17 @@
 import java.io.*;
-import java.text.ParseException;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException, ParseException {
-        WarcWriterManager warcWriterManager = new WarcWriterManager(new File("./_ham_"));
-        warcWriterManager.writeWarcs();
-
-        WarcReaderManager warcReaderManager = new WarcReaderManager(new File("./_ham_copy"));
-        warcReaderManager.read();
+    public static void main(String[] args) {
+        // TODO: Improve spam/ham files input
+        if (args.length != 2) {
+            System.err.println("Introduce the spam and ham folder's path as arguments");
+        } else {
+            File spam = new File(args[0]);
+            File ham = new File(args[1]);
+            BalanceCorpusManager balanceCorpusManager = new BalanceCorpusManager(spam, ham, 3, 3);
+            balanceCorpusManager.balance();
+            balanceCorpusManager.read();
+        }
     }
 }

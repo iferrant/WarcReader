@@ -10,6 +10,7 @@ import java.util.*;
 
 public class CustomWarcWriter {
     private final String WARC_VERSION = "WARC/1.0";
+    private final String WARC_CONTENT_TYPE_VALUE = "application/http;msgtype=response";
     private final String HEADER_WARCINFO_ALL_LANGUAGE = "WARC-All-Language";
     private final String HEADER_WARCINFO_ALL_CONTENT_TYPE = "WARC-All-Content_type";
     private final String WARCINFO_CONTENT = "WARCProcessor by SING Group www.sing-group.com";
@@ -40,20 +41,23 @@ public class CustomWarcWriter {
 
     /**
      * Writes the warc files
-     * @throws IOException
-     * @throws ParseException
      */
-    public void writeWarcs() throws IOException, ParseException {
-        List<Warc> warcsList = buildListOfPages(files);
-        List<Warc> auxWarcsList = buildListOfPages(files);
+    public void writeWarcs() {
+        try {
+            List<Warc> warcsList = buildListOfPages(files);
+            List<Warc> auxWarcsList = buildListOfPages(files);
 
-        warcsList.forEach(this::setCustomHeaders);
+            warcsList.forEach(this::setCustomHeaders);
 
-        customHeaders.forEach((k, v) -> v.forEach(System.out::println));
+            customHeaders.forEach((k, v) -> v.forEach(System.out::println));
 
-        Iterator<Warc> it = auxWarcsList.iterator();
-        while (it.hasNext() && numPages != 0) {
-            writeWarcFile(it.next());
+            Iterator<Warc> it = auxWarcsList.iterator();
+            while (it.hasNext() && numPages != 0) {
+                writeWarcFile(it.next());
+            }
+        } catch (IOException | ParseException e) {
+            System.err.println(e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -206,10 +210,14 @@ public class CustomWarcWriter {
      */
     private String buildHeader(String headerKey, Object headerValue) {
         String h = headerKey + ": ";
-        if (headerValue != null) {
-            h += headerValue.toString() + "\r\n";
+        if (headerKey.equals(HEADER_CONTENT_TYPE)) {
+            h += WARC_CONTENT_TYPE_VALUE + "\r\n";
         } else {
-            h += "\r\n";
+            if (headerValue != null) {
+                h += headerValue.toString() + "\r\n";
+            } else {
+                h += "\r\n";
+            }
         }
         return h;
     }
